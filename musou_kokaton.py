@@ -117,7 +117,7 @@ class Bird(pg.sprite.Sprite):
         screen.blit(self.image, self.rect)
 
 
-class Bomb(pg.sprite.Sprite):
+class Bomb(pg.sprite.Sprite): #継承元のクラス
     """
     爆弾に関するクラス
     """
@@ -207,7 +207,7 @@ class Explosion(pg.sprite.Sprite):
         self.life -= 1
         self.image = self.imgs[self.life//10%2]
         if self.life < 0:
-            self.kill()
+            self.kill() #グループから削除
 
 
 class Enemy(pg.sprite.Sprite):
@@ -271,6 +271,21 @@ class Shield(pg.sprite.Sprite):
         self.rect.centery = bird.rect.centery + bird.rect.height * vy
         self.life = life
 
+class Gravity(pg.sprite.Sprite):
+    """
+    重力に関するクラス
+    """
+    def __init__(self, life: int):
+        """
+        引数1:発動時間の変数
+        """
+        super().__init__()
+        self.life = life #発動時間400フレーム
+        self.image = pg.Surface((WIDTH, HEIGHT)) #空のSurfaceインスタンス
+        pg.draw.rect(self.image, (0, 0, 0), (0, 0, WIDTH, HEIGHT))
+        self.rect = self.image.get_rect(center=(WIDTH/2, HEIGHT/2))
+        self.image.set_alpha(128) #透明度
+    
     def update(self):
         self.life -= 1
         if self.life < 0:
@@ -304,6 +319,7 @@ class Shield(pg.sprite.Sprite):
 #         pg.time.wait(50)
 #  
 # 
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -311,11 +327,13 @@ def main():
     score = Score()
 
     bird = Bird(3, (900, 400))
+    #空のgroupオブジェクトを作成
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
+    gravitys = pg.sprite.Group()
 
     life = 400
     tmr = 0
@@ -340,23 +358,36 @@ def main():
             # if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20:
             #     EMP(emys, bombs, screen)
             #     score.value -= 20
+            #重力場
+            if event.type == pg.KEYDOWN and event.key == pg.K_a and score.value > 200:
+                bird.change_img(6, screen)
+                gravitys.add(Gravity(400))
+                score.value -= 200 #スコアを200減らす
+                
+
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
-            emys.add(Enemy())
+            emys.add(Enemy()) #追加
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
-                bombs.add(Bomb(emy, bird))
+                bombs.add(Bomb(emy, bird)) #インスタンスを作成 #groupeオブジェクトにインスタンスを追加
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():  # ビームと衝突した敵機リスト
-            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+            exps.add(Explosion(emy, 100))  #敵を倒す
             score.value += 10  # 10点アップ
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
+        for bomb in pg.sprite.groupcollide(bombs, gravitys, True, False).keys():  # gravityと衝突した爆弾リスト
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト #爆発した位置にエフェクトを表示
+        
+        for emy in pg.sprite.groupcollide(emys, gravitys, True, False).keys():  # gravityと衝突した爆弾リスト
+            exps.add(Explosion(emy, 50))  # 爆発エフェクト #爆発した位置にエフェクトを表示
+
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():  # ビームと衝突した爆弾リスト
-            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト #爆発した位置にエフェクトを表示
             score.value += 1  # 1点アップ
 
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():  # ビームと衝突した爆弾リスト
@@ -375,6 +406,8 @@ def main():
                 time.sleep(2)
                 return
             
+        gravitys.update()
+        gravitys.draw(screen)
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
