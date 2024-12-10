@@ -274,7 +274,7 @@ def main():
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
 
-    life = 100
+    life = 400
     tmr = 0
     clock = pg.time.Clock()
     while True:
