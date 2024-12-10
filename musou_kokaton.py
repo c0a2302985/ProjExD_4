@@ -241,6 +241,25 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+class Shield(pg.sprite.Sprite):
+    def __init__(self, bird: Bird, life: int):
+        super().__init__()
+        self.image = pg.Surface((10, bird.rect.height * 2))
+        color = (0, 0, 255)
+        pg.draw.rect(self.image, color, (0, 0, 20, bird.rect.height * 2))
+        vx, vy = bird.dire
+        self.angle = math.degrees(math.atan2(-vy, vx))
+        self.image = pg.transform.rotozoom(self.image, self.angle, 1.0)
+        self.image.set_colorkey((0, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.centerx = bird.rect.centerx + bird.rect.width * vx
+        self.rect.centery = bird.rect.centery + bird.rect.height * vy
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -253,7 +272,9 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    shields = pg.sprite.Group()
 
+    life = 100
     tmr = 0
     clock = pg.time.Clock()
     while True:
@@ -263,6 +284,8 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_s and len(shields) == 0:
+                shields.add(Shield(bird, life))
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -279,6 +302,10 @@ def main():
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():  # ビームと衝突した爆弾リスト
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.value += 1  # 1点アップ
+
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():  # ビームと衝突した爆弾リスト
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
@@ -299,6 +326,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        shields.update()
+        shields.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
