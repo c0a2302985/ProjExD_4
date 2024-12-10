@@ -103,11 +103,11 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        if self.state == "hyper":
+        if self.state == "hyper":#hyperの時
             self.image = pg.transform.laplacian(self.image)
             self.hyper_life -= 1
             if self.hyper_life <= 0:
-                self.state = "normal"
+                self.state = "normal"#normalの時
                 self.image = self.imgs[self.dire]
         screen.blit(self.image, self.rect)
 
@@ -308,7 +308,7 @@ def main():
                 pg.display.update()
                 time.sleep(2)
                 return
-
+            
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
